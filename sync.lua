@@ -36,19 +36,23 @@ local M = {}
 ---@private
 -- Given a line, byte idx, and offset_encoding convert to the
 -- utf-8, utf-16, or utf-32 index.
-function M.convert_byte_to_utf(line, idx, offset_encoding)
+---@param line string the line to index into
+---@param byte integer the byte idx
+---@param offset_encoding string utf-8|utf-16|utf-32|nil (default: utf-8)
+--@returns integer the utf idx for the given encoding
+function M.byte_to_utf(line, byte, offset_encoding)
   -- convert to 0 based indexing
-  idx = idx - 1
+  byte = byte - 1
 
   local utf_idx
   local _
   -- Convert the byte range to utf-{8,16,32} and convert 1-based (lua) indexing to 0-based
   if offset_encoding == 'utf-16' then
-    _, utf_idx = vim.str_utfindex(line, idx)
+    _, utf_idx = vim.str_utfindex(line, byte)
   elseif offset_encoding == 'utf-32' then
-    utf_idx, _ = vim.str_utfindex(line, idx)
+    utf_idx, _ = vim.str_utfindex(line, byte)
   else
-    utf_idx = idx
+    utf_idx = byte
   end
 
   -- convert to 1 based indexing
@@ -56,14 +60,16 @@ function M.convert_byte_to_utf(line, idx, offset_encoding)
 end
 
 ---@private
--- Given a line, byte idx, alignment, and offset_encoding convert to the
+-- Given a line, byte idx, alignment, and offset_encoding convert to the aligned
 -- utf-8 index and either the utf-16, or utf-32 index.
----@param line string
----@param byte integer
----@param align string
----@param offset_encoding string utf-8|utf-16|utf-32|nil (fallback to utf-8)
----@returns table<int, int> line_idx, byte_idx, and char_idx of first change position
-function M.byte_to_codepoint(line, byte, align, offset_encoding)
+---@param line string the line to index into
+---@param byte integer the byte idx
+---@param align string when dealing with multibyte characters,
+--        to choose the start of the current character or the beginning of the next.
+--        Used for incremental sync for start/end range respectively
+---@param offset_encoding string utf-8|utf-16|utf-32|nil (default: utf-8)
+---@returns table<string, int> byte_idx and char_idx of first change position
+function M.align_position(line, byte, align, offset_encoding)
   local char
   -- Set the byte range to start at the last codepoint
   if byte == 1 or #line == 0 then
@@ -73,19 +79,19 @@ function M.byte_to_codepoint(line, byte, align, offset_encoding)
     -- If extending the line, the range will be the length of the last line + 1 and fall on a codepoint
     byte = byte
     -- Extending line, find the nearest utf codepoint for the last valid character then add 1
-    char = M.convert_byte_to_utf(line, #line, offset_encoding) + 1
+    char = M.byte_to_utf(line, #line, offset_encoding) + 1
   else
     -- Modifying line, find the nearest utf codepoint
     if align == 'start' then
       byte = byte + vim.str_utf_start(line, byte)
-      char = M.convert_byte_to_utf(line, byte, offset_encoding)
+      char = M.byte_to_utf(line, byte, offset_encoding)
     elseif align == 'end' then
       local offset = vim.str_utf_end(line, byte)
       if offset > 0 then
-        char = M.convert_byte_to_utf(line, byte, offset_encoding) + 1
+        char = M.byte_to_utf(line, byte, offset_encoding) + 1
         byte = byte + offset
       else
-        char = M.convert_byte_to_utf(line, byte, offset_encoding)
+        char = M.byte_to_utf(line, byte, offset_encoding)
         byte = byte + offset
       end
     else
@@ -133,7 +139,7 @@ function M.compute_start_range(prev_lines, curr_lines, firstline, lastline, new_
   end
 
   -- Convert byte to codepoint if applicable
-  local byte_idx, char_idx = M.byte_to_codepoint(prev_line, start_byte_idx, 'start', offset_encoding)
+  local byte_idx, char_idx = M.align_position(prev_line, start_byte_idx, 'start', offset_encoding)
 
   -- Return the start difference (shared for new and prev lines)
   return { line_idx = firstline, byte_idx = byte_idx, char_idx = char_idx }
@@ -199,7 +205,7 @@ function M.compute_end_range(prev_lines, curr_lines, start_range, lastline, new_
 
   -- Iterate from end to beginning of shortest line
   local prev_end_byte_idx = prev_line_length - byte_offset + 1
-  local prev_byte_idx, prev_char_idx = M.byte_to_codepoint(prev_line, prev_end_byte_idx, 'end', offset_encoding)
+  local prev_byte_idx, prev_char_idx = M.align_position(prev_line, prev_end_byte_idx, 'end', offset_encoding)
   local prev_end_range = { line_idx = prev_line_idx, byte_idx = prev_byte_idx, char_idx = prev_char_idx }
 
   local curr_end_range
@@ -208,7 +214,7 @@ function M.compute_end_range(prev_lines, curr_lines, start_range, lastline, new_
     curr_end_range = { line_idx = start_line_idx, byte_idx = 1, char_idx = 1 }
   else
     local curr_end_byte_idx = curr_line_length - byte_offset + 1
-    local curr_byte_idx, curr_char_idx = M.byte_to_codepoint(curr_line, curr_end_byte_idx, 'end', offset_encoding)
+    local curr_byte_idx, curr_char_idx = M.align_position(curr_line, curr_end_byte_idx, 'end', offset_encoding)
     curr_end_range = { line_idx = curr_line_idx, byte_idx = curr_byte_idx, char_idx = curr_char_idx }
   end
 
@@ -227,14 +233,12 @@ function M.extract_text(lines, start_range, end_range, line_ending)
     return string.sub(lines[start_range.line_idx], start_range.byte_idx, end_range.byte_idx - 1)
   else
     local result = { string.sub(lines[start_range.line_idx], start_range.byte_idx) }
-    -- print(vim.inspect(result))
 
     -- The first and last range of the line idx may be partial lines
     for idx = start_range.line_idx + 1, end_range.line_idx - 1 do
       table.insert(result, lines[idx])
     end
 
-    -- TODO: Join all lines with newline (should read from whatever the encoding is in the file)
     result = table.concat(result, line_ending) .. line_ending
 
     -- Add the fragment of the last line
@@ -264,9 +268,7 @@ function M.compute_range_length(lines, start_range, end_range, offset_encoding, 
   local start_line = lines[start_range.line_idx]
   local range_length
   if #start_line > 0 then
-    range_length = M.convert_byte_to_utf(start_line, #start_line, offset_encoding)
-      - start_range.char_idx
-      + line_ending_length
+    range_length = M.byte_to_utf(start_line, #start_line, offset_encoding) - start_range.char_idx + line_ending_length
   else
     -- Length of newline character
     range_length = line_ending_length
@@ -275,12 +277,12 @@ function M.compute_range_length(lines, start_range, end_range, offset_encoding, 
   -- The first and last range of the line idx may be partial lines
   for idx = start_range.line_idx + 1, end_range.line_idx - 1 do
     -- Length full line plus newline character
-    range_length = range_length + M.convert_byte_to_utf(lines[idx], #lines[idx], offset_encoding) + line_ending_length
+    range_length = range_length + M.byte_to_utf(lines[idx], #lines[idx], offset_encoding) + line_ending_length
   end
 
   local end_line = lines[end_range.line_idx]
   if #end_line > 0 then
-    range_length = range_length + M.convert_byte_to_utf(end_line, #end_line, offset_encoding) - end_range.char_idx
+    range_length = range_length + M.byte_to_utf(end_line, #end_line, offset_encoding) - end_range.char_idx
   end
 
   return range_length
@@ -323,7 +325,7 @@ function M.compute_diff(prev_lines, curr_lines, firstline, lastline, new_lastlin
   local text = M.extract_text(curr_lines, start_range, curr_end_range, line_ending)
 
   -- Compute the range of the replaced text. Deprecated but still required for certain language servers
-  local range_length = M.compute_range_length(prev_lines, start_range, prev_end_range, offset_encoding)
+  local range_length = M.compute_range_length(prev_lines, start_range, prev_end_range, offset_encoding, line_ending)
 
   -- convert to 0 based indexing
   local result = {
