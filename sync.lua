@@ -160,7 +160,13 @@ end
 ---@param new_lastline integer
 ---@param offset_encoding string
 ---@returns (int, int) end_line_idx and end_col_idx of range
-function M.compute_end_range(prev_lines, curr_lines, start_range, lastline, new_lastline, offset_encoding)
+function M.compute_end_range(prev_lines, curr_lines, start_range, firstline, lastline, new_lastline, offset_encoding)
+  -- If firstline == new_lastline, the first change occured on a line that was deleted.
+  -- In this case, the last_byte...
+  if firstline == new_lastline then
+    
+    print("This is a special case")
+  end
   -- Compare on last line, at minimum will be the start range
   local start_line_idx = start_range.line_idx
 
@@ -321,6 +327,7 @@ function M.compute_diff(prev_lines, curr_lines, firstline, lastline, new_lastlin
     prev_lines,
     curr_lines,
     start_range,
+    firstline + 1,
     lastline + 1,
     new_lastline + 1,
     offset_encoding

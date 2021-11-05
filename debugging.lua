@@ -5,6 +5,15 @@ local curr_buf = vim.api.nvim_create_buf(true, true)
 local log_buf = vim.api.nvim_create_buf(true, true)
 local edit_buf = vim.api.nvim_create_buf(true, true)
 
+Clear = function()
+    vim.api.nvim_buf_set_lines(last_buf, 0, -1, true, {""})
+    vim.api.nvim_buf_set_lines(curr_buf, 0, -1, true, {""})
+    vim.api.nvim_buf_set_lines(log_buf, 0, -1, true, {""})
+end
+vim.cmd [[
+  command! Clear  execute 'lua Clear()'
+]]
+
 vim.cmd [[ split ]]
 vim.cmd [[ vsplit ]]
 vim.api.nvim_set_current_buf(edit_buf)
@@ -18,7 +27,7 @@ vim.api.nvim_set_current_buf(curr_buf)
 vim.cmd [[ wincmd w ]]
 vim.cmd [[ autocmd cursorhold * echo line('.') col('.')]]
 
-vim.api.nvim_buf_set_lines(edit_buf, 0, -1, true, { 'local test1', 'local test2', 'local test3' })
+vim.api.nvim_buf_set_lines(edit_buf, 0, -1, true, { 'test1 test2', 'test2'})
 
 local last_lines = vim.api.nvim_buf_get_lines(edit_buf, 0, -1, true)
 local last_changed_tick = vim.deepcopy(vim.b.changedtick)
@@ -41,7 +50,7 @@ local callback = function(_, _, tick, firstline, lastline, new_lastline, _, _, _
     new_lastline + 1,
     offset_encoding
   )
-  -- local old_end_range, new_end_range = last_difference(last_lines, lines, start_range, lastline+1, new_lastline+1, offset_encoding)
+  -- local prev_end_range, curr_end_range = sync.compute_end_range(last_lines, lines, start_range, lastline+1, new_lastline+1, offset_encoding)
 
   -- local text = extract_text(lines, start_range, new_end_range)
 
@@ -73,14 +82,14 @@ local callback = function(_, _, tick, firstline, lastline, new_lastline, _, _, _
       string.format('    line: %d', start_range.line_idx),
       string.format('    char: %d', start_range.char_idx),
       string.format '    }',
-      -- string.format("  {end:"),
-      -- string.format("    line: %d", old_end_range.line_idx),
-      -- string.format("    char: %d", old_end_range.char_idx),
+      string.format("  {prev end:"),
+      -- string.format("    line: %d", prev_end_range.line_idx),
+      -- string.format("    char: %d", prev_end_range.char_idx),
       -- string.format("    }"),
-      -- string.format("  {new end:"),
-      -- string.format("    line: %d", new_end_range.line_idx),
-      -- string.format("    char: %d", new_end_range.char_idx),
-      -- string.format("    }"),
+      -- string.format("  {curr end:"),
+      -- string.format("    line: %d", curr_end_range.line_idx),
+      -- string.format("    char: %d", curr_end_range.char_idx),
+      string.format("    }"),
       -- string.format("start_range_char %d", start_range.char_idx),
       -- string.format("start_range_line %d", start_range.line_idx),
       -- string.format("start_range_byte %d", start_range.byte_idx),
