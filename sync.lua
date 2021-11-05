@@ -11,6 +11,26 @@
 --  representation the protocol specifies the following end-of-line sequences: ‘\n’, ‘\r\n’ and ‘\r’.
 --
 --  Positions are line end character agnostic. So you can not specify a position that denotes \r|\n or \n| where | represents the character offset. This means *no* defining a range than ends on the same line after a terminating character
+--
+-- Generic warnings about byte level changes in neovim
+--  Join operation (2 op): extends line 1 with the contents of line 2, delete line 2
+--  lastline = 3
+--  test 1    test 1 test 2    test 1 test 2
+--  test 2 -> test 2        -> test 3
+--  test 3    test 3
+--
+--  Deleting (and undoing) two middle lines (1 op)
+--  test 1    test 1
+--  test 2 -> test 4
+--  test 3
+--  test 4
+--
+--  Delete between asterisks (5 op)
+--  test *1   test *    test *     test *    test *4    test *4*
+--  test 2 -> test 2 -> test *4 -> *4     -> *4      ->
+--  test 3    test 3
+--  test *4   test 4
+
 
 local M = {}
 
@@ -76,26 +96,6 @@ function M.byte_to_codepoint(line, byte, align, offset_encoding)
   end
   return byte, char
 end
-
--- Generic warnings about byte level changes in neovim
--- This handles whole line operations (line wiped or added)
--- Join operation (2 op): extends line 1 with the contents of line 2, delete line 2
--- lastline = 3
--- test 1    test 1 test 2    test 1 test 2
--- test 2 -> test 2        -> test 3
--- test 3    test 3
---
--- Deleting (and undoing) two middle lines (1 op)
--- test 1    test 1
--- test 2 -> test 4
--- test 3
--- test 4
---
--- Delete between asterisks (5 op)
--- test *1   test *    test *     test *    test *4    test *4*
--- test 2 -> test 2 -> test *4 -> *4     -> *4      ->
--- test 3    test 3
--- test *4   test 4
 
 ---@private
 --- Finds the first line, byte, and char index of the difference between the previous and current lines buffer normalized to the previous codepoint.
