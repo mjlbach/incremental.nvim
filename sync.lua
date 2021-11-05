@@ -71,14 +71,14 @@ end
 ---@returns table<string, int> byte_idx and char_idx of first change position
 function M.align_position(line, byte, align, offset_encoding)
   local char
-  -- Set the byte range to start at the last codepoint
+  -- If on the first byte, or an empty string: the trivial case
   if byte == 1 or #line == 0 then
-    -- if start_byte is first byte, or the length of the string is 0, we are done
     char = byte
+  -- TODO(mjlbach): not sure about this in the multibyte case
+  -- Called in the case of extending an empty line "" -> "a"
   elseif byte == #line + 1 then
-    -- If extending the line, the range will be the length of the last line + 1 and fall on a codepoint
     byte = byte
-    -- Extending line, find the nearest utf codepoint for the last valid character then add 1
+    -- Find the utf position of the end of the line, and add one for the new character
     char = M.byte_to_utf(line, #line, offset_encoding) + 1
   else
     -- Modifying line, find the nearest utf codepoint
@@ -87,6 +87,8 @@ function M.align_position(line, byte, align, offset_encoding)
       char = M.byte_to_utf(line, byte, offset_encoding)
     elseif align == 'end' then
       local offset = vim.str_utf_end(line, byte)
+      -- If the byte does not fall on the start of the character, then
+      -- align to the start of the next character.
       if offset > 0 then
         char = M.byte_to_utf(line, byte, offset_encoding) + 1
         byte = byte + offset
@@ -146,8 +148,11 @@ function M.compute_start_range(prev_lines, curr_lines, firstline, lastline, new_
 end
 
 ---@private
---- Finds the last line and byte index of the differences between prev and new lines>
+--- Finds the last line and byte index of the differences between prev and current buffer.
 --- Normalized to the next codepoint.
+--- prev_end_range is the text range sent to the server representing the changed region.
+--- curr_end_range is the text that should be collected and sent to the server.
+--
 ---@param prev_lines table list of lines
 ---@param curr_lines table list of lines
 ---@param start_range table
@@ -228,26 +233,24 @@ end
 ---@param end_range table new_end_range returned by last_difference
 ---@returns string text extracted from defined region
 function M.extract_text(lines, start_range, end_range, line_ending)
-  -- Add the fragment of the first line
+  -- Trivial case: start and end range are the same line, directly grab changed text
   if start_range.line_idx == end_range.line_idx then
+    -- string.sub is inclusive, end_range is not
     return string.sub(lines[start_range.line_idx], start_range.byte_idx, end_range.byte_idx - 1)
   else
+    -- Collect the changed portion of the first changed line
     local result = { string.sub(lines[start_range.line_idx], start_range.byte_idx) }
 
-    -- The first and last range of the line idx may be partial lines
+    -- Collect the full line for intermediate lines
     for idx = start_range.line_idx + 1, end_range.line_idx - 1 do
       table.insert(result, lines[idx])
     end
 
-    result = table.concat(result, line_ending) .. line_ending
+    -- Collect the changed portion of the last changed line.
+    table.insert(string.sub(lines[end_range.line_idx], 1, end_range.byte_idx - 1))
 
-    -- Add the fragment of the last line
-    local line = lines[end_range.line_idx]
-    if end_range.byte_idx > 1 then
-      result = result .. string.sub(line, 1, end_range.byte_idx)
-    end
-
-    return result
+    -- Add line ending between all lines
+    return table.concat(result, line_ending)
   end
 end
 
