@@ -1,1 +1,1 @@
-require('sync')
+require 'sync'

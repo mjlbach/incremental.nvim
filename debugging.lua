@@ -1,4 +1,4 @@
-local sync = require('sync')
+local sync = require 'sync'
 
 local last_buf = vim.api.nvim_create_buf(true, true)
 local curr_buf = vim.api.nvim_create_buf(true, true)
