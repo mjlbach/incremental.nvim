@@ -271,6 +271,7 @@ function M.compute_range_length(lines, start_range, end_range, offset_encoding, 
   local start_line = lines[start_range.line_idx]
   local range_length
   if #start_line > 0 then
+    --TODO(mjlbach): check 1 indexing
     range_length = M.byte_to_utf(start_line, #start_line, offset_encoding) - start_range.char_idx + line_ending_length
   else
     -- Length of newline character
@@ -280,11 +281,13 @@ function M.compute_range_length(lines, start_range, end_range, offset_encoding, 
   -- The first and last range of the line idx may be partial lines
   for idx = start_range.line_idx + 1, end_range.line_idx - 1 do
     -- Length full line plus newline character
+    --TODO(mjlbach): check 1 indexing
     range_length = range_length + M.byte_to_utf(lines[idx], #lines[idx], offset_encoding) + line_ending_length
   end
 
   local end_line = lines[end_range.line_idx]
   if #end_line > 0 then
+    --TODO(mjlbach): check 1 indexing
     range_length = range_length + M.byte_to_utf(end_line, #end_line, offset_encoding) - end_range.char_idx
   end
 
