@@ -199,7 +199,11 @@ function M.extract_text(lines, start_range, end_range, line_ending)
     end
 
     -- Collect the changed portion of the last changed line.
-    table.insert(result, string.sub(lines[end_range.line_idx], 1, end_range.byte_idx - 1))
+    if lines[end_range.line_idx] then
+      table.insert(result, string.sub(lines[end_range.line_idx], 1, end_range.byte_idx - 1))
+    else
+      table.insert(result, "")
+    end
 
     -- Add line ending between all lines
     return table.concat(result, line_ending)
@@ -238,7 +242,7 @@ function M.compute_range_length(lines, start_range, end_range, offset_encoding, 
   end
 
   local end_line = lines[end_range.line_idx]
-  if #end_line > 0 then
+  if end_line and #end_line > 0 then
     --TODO(mjlbach): check 1 indexing
     range_length = range_length + M.byte_to_utf(end_line, #end_line, offset_encoding) - end_range.char_idx
   end
@@ -290,7 +294,7 @@ function M.compute_diff(prev_lines, curr_lines, byte_change, offset_encoding, li
   local text = M.extract_text(curr_lines, start_range, curr_end_range, line_ending)
 
   -- Compute the range of the replaced text. Deprecated but still required for certain language servers
-  local range_length = M.compute_range_length(prev_lines, start_range, prev_end_range, offset_encoding, line_ending)
+  -- local range_length = M.compute_range_length(prev_lines, start_range, prev_end_range, offset_encoding, line_ending)
 
   -- convert to 0 based indexing
   local result = {
@@ -299,7 +303,7 @@ function M.compute_diff(prev_lines, curr_lines, byte_change, offset_encoding, li
       ['end'] = { line = prev_end_range.line_idx - 1, character = prev_end_range.char_idx - 1 },
     },
     text = text,
-    rangeLength = range_length,
+    -- rangeLength = range_length,
   }
 
   return result
