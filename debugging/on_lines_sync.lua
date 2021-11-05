@@ -6,9 +6,9 @@ local log_buf = vim.api.nvim_create_buf(true, true)
 local edit_buf = vim.api.nvim_create_buf(true, true)
 
 Clear = function()
-    vim.api.nvim_buf_set_lines(last_buf, 0, -1, true, {""})
-    vim.api.nvim_buf_set_lines(curr_buf, 0, -1, true, {""})
-    vim.api.nvim_buf_set_lines(log_buf, 0, -1, true, {""})
+  vim.api.nvim_buf_set_lines(last_buf, 0, -1, true, { '' })
+  vim.api.nvim_buf_set_lines(curr_buf, 0, -1, true, { '' })
+  vim.api.nvim_buf_set_lines(log_buf, 0, -1, true, { '' })
 end
 vim.cmd [[
   command! Clear  execute 'lua Clear()'
@@ -27,7 +27,7 @@ vim.api.nvim_set_current_buf(curr_buf)
 vim.cmd [[ wincmd w ]]
 vim.cmd [[ autocmd cursorhold * echo line('.') col('.')]]
 
-vim.api.nvim_buf_set_lines(edit_buf, 0, -1, true, { 'test1 test2', 'test2'})
+vim.api.nvim_buf_set_lines(edit_buf, 0, -1, true, { 'test1 test2', 'test2' })
 
 local last_lines = vim.api.nvim_buf_get_lines(edit_buf, 0, -1, true)
 local last_changed_tick = vim.deepcopy(vim.b.changedtick)
@@ -82,14 +82,14 @@ local callback = function(_, _, tick, firstline, lastline, new_lastline, _, _, _
       string.format('    line: %d', start_range.line_idx),
       string.format('    char: %d', start_range.char_idx),
       string.format '    }',
-      string.format("  {prev end:"),
+      string.format '  {prev end:',
       -- string.format("    line: %d", prev_end_range.line_idx),
       -- string.format("    char: %d", prev_end_range.char_idx),
       -- string.format("    }"),
       -- string.format("  {curr end:"),
       -- string.format("    line: %d", curr_end_range.line_idx),
       -- string.format("    char: %d", curr_end_range.char_idx),
-      string.format("    }"),
+      string.format '    }',
       -- string.format("start_range_char %d", start_range.char_idx),
       -- string.format("start_range_line %d", start_range.line_idx),
       -- string.format("start_range_byte %d", start_range.byte_idx),

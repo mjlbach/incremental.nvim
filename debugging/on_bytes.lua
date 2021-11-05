@@ -4,9 +4,9 @@ local log_buf = vim.api.nvim_create_buf(true, true)
 local edit_buf = vim.api.nvim_create_buf(true, true)
 
 Clear = function()
-    vim.api.nvim_buf_set_lines(last_buf, 0, -1, true, {""})
-    vim.api.nvim_buf_set_lines(curr_buf, 0, -1, true, {""})
-    vim.api.nvim_buf_set_lines(log_buf, 0, -1, true, {""})
+  vim.api.nvim_buf_set_lines(last_buf, 0, -1, true, { '' })
+  vim.api.nvim_buf_set_lines(curr_buf, 0, -1, true, { '' })
+  vim.api.nvim_buf_set_lines(log_buf, 0, -1, true, { '' })
 end
 vim.cmd [[
   command! Clear  execute 'lua Clear()'
@@ -24,27 +24,40 @@ vim.cmd [[ wincmd w ]]
 vim.api.nvim_set_current_buf(curr_buf)
 vim.cmd [[ wincmd w ]]
 
-vim.api.nvim_buf_set_lines(edit_buf, 0, -1, true, { 'test1 test2', 'test2'})
+vim.api.nvim_buf_set_lines(edit_buf, 0, -1, true, { 'test1 test2', 'test2' })
 local prev_lines = vim.api.nvim_buf_get_lines(edit_buf, 0, -1, true)
 
-local callback = function(_, _, tick, start_row, start_col, byte_offset, prev_end_row, prev_end_col, prev_end_byte_length, curr_end_row, curr_end_col, curr_end_byte)
+local callback = function(
+  _,
+  _,
+  tick,
+  start_row,
+  start_col,
+  byte_offset,
+  prev_end_row,
+  prev_end_col,
+  prev_end_byte_length,
+  curr_end_row,
+  curr_end_col,
+  curr_end_byte
+)
   local curr_lines = vim.api.nvim_buf_get_lines(edit_buf, 0, -1, true)
   local change = {
-    ["start"]= {
+    ['start'] = {
       row = start_row,
       col = start_col,
     },
-    ["prev_end"]= {
+    ['prev_end'] = {
       row = prev_end_row,
       col = prev_end_col,
     },
-    ["curr_end"]= {
+    ['curr_end'] = {
       row = curr_end_row,
       col = curr_end_col,
     },
-    tick=tick,
-    prev_lines=prev_lines,
-    curr_lines=curr_lines
+    tick = tick,
+    prev_lines = prev_lines,
+    curr_lines = curr_lines,
   }
   change = vim.deepcopy(change)
   -- local prev_end_range, curr_end_range = sync.compute_end_range(last_lines, lines, start_range, lastline+1, new_lastline+1, offset_encoding)
@@ -65,14 +78,14 @@ local callback = function(_, _, tick, start_row, start_col, byte_offset, prev_en
       string.format('    line: %d', change.start.row),
       string.format('    char: %d', change.start.col),
       string.format '    }',
-      string.format("  {prev end:"),
-      string.format("    line: %d", change.prev_end.row),
-      string.format("    char: %d", change.prev_end.col),
-      string.format("    }"),
-      string.format("  {curr end:"),
-      string.format("    line: %d", change.curr_end.row),
-      string.format("    char: %d", change.curr_end.col),
-      string.format("    }"),
+      string.format '  {prev end:',
+      string.format('    line: %d', change.prev_end.row),
+      string.format('    char: %d', change.prev_end.col),
+      string.format '    }',
+      string.format '  {curr end:',
+      string.format('    line: %d', change.curr_end.row),
+      string.format('    char: %d', change.curr_end.col),
+      string.format '    }',
       '',
     })
   end

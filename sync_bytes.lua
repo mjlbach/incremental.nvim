@@ -74,8 +74,8 @@ function M.align_position(line, byte, align, offset_encoding)
   -- If on the first byte, or an empty string: the trivial case
   if byte == 1 or #line == 0 then
     char = byte
-  -- TODO(mjlbach): not sure about this in the multibyte case
-  -- Called in the case of extending an empty line "" -> "a"
+    -- TODO(mjlbach): not sure about this in the multibyte case
+    -- Called in the case of extending an empty line "" -> "a"
   elseif byte == #line + 1 then
     byte = byte
     -- Find the utf position of the end of the line, and add one for the new character
@@ -137,7 +137,6 @@ function M.compute_prev_end_range(prev_lines, prev_end_row, prev_end_col, offset
   local curr_byte_idx, curr_char_idx = M.align_position(prev_line, prev_end_col, 'end', offset_encoding)
   return { line_idx = prev_line, byte_idx = curr_byte_idx, char_idx = curr_char_idx }
 end
-
 
 ---@private
 --- Finds the last line and byte index of the differences between prev and current buffer.
@@ -255,8 +254,8 @@ function M.compute_diff(prev_lines, curr_lines, byte_change, offset_encoding, li
   -- curr_end_range is used to grab the changed text from the latest buffer.
   local curr_end_range = M.compute_curr_end_range(
     curr_lines,
-    byte_change.prev_end_row + 1,
-    byte_change.prev_end_col + 1,
+    byte_change.curr_end_row + 1,
+    byte_change.curr_end_col + 1,
     offset_encoding
   )
 

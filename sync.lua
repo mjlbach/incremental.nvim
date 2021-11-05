@@ -74,8 +74,8 @@ function M.align_position(line, byte, align, offset_encoding)
   -- If on the first byte, or an empty string: the trivial case
   if byte == 1 or #line == 0 then
     char = byte
-  -- TODO(mjlbach): not sure about this in the multibyte case
-  -- Called in the case of extending an empty line "" -> "a"
+    -- TODO(mjlbach): not sure about this in the multibyte case
+    -- Called in the case of extending an empty line "" -> "a"
   elseif byte == #line + 1 then
     byte = byte
     -- Find the utf position of the end of the line, and add one for the new character
@@ -164,8 +164,7 @@ function M.compute_end_range(prev_lines, curr_lines, start_range, firstline, las
   -- If firstline == new_lastline, the first change occured on a line that was deleted.
   -- In this case, the last_byte...
   if firstline == new_lastline then
-    
-    print("This is a special case")
+    print 'This is a special case'
   end
   -- Compare on last line, at minimum will be the start range
   local start_line_idx = start_range.line_idx
