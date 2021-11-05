@@ -35,7 +35,7 @@ local line_ending = '\n'
 local callback =
   function(_, _, tick, start_row, start_col, _, prev_end_row, prev_end_col, _, curr_end_row, curr_end_col, _)
     local curr_lines = vim.api.nvim_buf_get_lines(edit_buf, 0, -1, true)
-    sync.compute_diff(prev_lines, curr_lines, {
+    local change = sync.compute_diff(prev_lines, curr_lines, {
       start_row = start_row,
       start_col = start_col,
       prev_end_row = prev_end_row,
@@ -43,23 +43,9 @@ local callback =
       curr_end_row = curr_end_row,
       curr_end_col = curr_end_col,
     }, offset_encoding, line_ending)
-    local change = {
-      ['start'] = {
-        row = start_row,
-        col = start_col,
-      },
-      ['prev_end'] = {
-        row = prev_end_row,
-        col = prev_end_col,
-      },
-      ['curr_end'] = {
-        row = curr_end_row,
-        col = curr_end_col,
-      },
-      tick = tick,
-      prev_lines = prev_lines,
-      curr_lines = curr_lines,
-    }
+    change.prev_lines = prev_lines
+    change.curr_lines = curr_lines
+    change.tick = tick
     change = vim.deepcopy(change)
     -- local prev_end_range, curr_end_range = sync.compute_end_range(last_lines, lines, start_range, lastline+1, new_lastline+1, offset_encoding)
 
@@ -72,21 +58,19 @@ local callback =
       vim.api.nvim_buf_set_lines(curr_buf, 0, 0, true, change.curr_lines)
       vim.api.nvim_buf_set_lines(curr_buf, 0, 0, true, { '', 'current buffer state: ' .. tostring(tick) })
 
+      -- print(vim.inspect(change))
       vim.api.nvim_buf_set_lines(log_buf, 0, 0, true, {
         string.format('tick %d, undo/redo: %s', change.tick, ur),
-        string.format '{range',
-        string.format '  {start: ',
-        string.format('    line: %d', change.start.row),
-        string.format('    char: %d', change.start.col),
+        string.format('{range'),
+        string.format('  {start: '),
+        string.format('    line: %d', change.range.start.line),
+        string.format('    char: %d', change.range.start.character),
         string.format '    }',
-        string.format '  {prev end:',
-        string.format('    line: %d', change.prev_end.row),
-        string.format('    char: %d', change.prev_end.col),
+        string.format '  {end:',
+        string.format('    line: %d', change.range['end'].line),
+        string.format('    char: %d', change.range['end'].character),
         string.format '    }',
-        string.format '  {curr end:',
-        string.format('    line: %d', change.curr_end.row),
-        string.format('    char: %d', change.curr_end.col),
-        string.format '    }',
+        string.format('  text : %s', vim.fn.join(vim.split(change.text, '\n'), '\\n')),
         '',
       })
     end

@@ -65,14 +65,13 @@ local callback = function(
   -- local text = extract_text(lines, start_range, new_end_range)
 
   local to_schedule = function()
-    local ur
     vim.api.nvim_buf_set_lines(last_buf, 0, 0, true, change.prev_lines)
     vim.api.nvim_buf_set_lines(last_buf, 0, 0, true, { '', 'last buffer state: ' .. tostring(change.tick) })
     vim.api.nvim_buf_set_lines(curr_buf, 0, 0, true, change.curr_lines)
     vim.api.nvim_buf_set_lines(curr_buf, 0, 0, true, { '', 'current buffer state: ' .. tostring(tick) })
 
     vim.api.nvim_buf_set_lines(log_buf, 0, 0, true, {
-      string.format('tick %d, undo/redo: %s', change.tick, ur),
+      string.format('tick %d', change.tick),
       string.format '{range',
       string.format '  {start: ',
       string.format('    line: %d', change.start.row),
@@ -86,6 +85,9 @@ local callback = function(
       string.format('    line: %d', change.curr_end.row),
       string.format('    char: %d', change.curr_end.col),
       string.format '    }',
+      string.format('  byte_offset: %d', byte_offset),
+      string.format('  prev_end_byte_length: %d', prev_end_byte_length),
+      string.format('  curr_end_byte: %d', curr_end_byte),
       '',
     })
   end
