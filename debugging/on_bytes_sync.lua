@@ -61,8 +61,8 @@ local callback =
       -- print(vim.inspect(change))
       vim.api.nvim_buf_set_lines(log_buf, 0, 0, true, {
         string.format('tick %d, undo/redo: %s', change.tick, ur),
-        string.format('{range'),
-        string.format('  {start: '),
+        string.format '{range',
+        string.format '  {start: ',
         string.format('    line: %d', change.range.start.line),
         string.format('    char: %d', change.range.start.character),
         string.format '    }',
@@ -75,6 +75,7 @@ local callback =
       })
     end
     vim.schedule(to_schedule)
+    prev_lines=curr_lines
   end
 
 vim.api.nvim_buf_attach(edit_buf, false, { on_bytes = callback })
