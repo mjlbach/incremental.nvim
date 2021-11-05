@@ -31,7 +31,6 @@
 --  test 3    test 3
 --  test *4   test 4
 
-
 -- Notes on on_bytes
 -- old line/col size will only be non-zero if you replace/delete something
 local M = {}
@@ -138,16 +137,71 @@ end
 function M.compute_prev_end_range(prev_lines, start_row, start_col, prev_end_row, prev_end_col, offset_encoding)
   -- Handle pure insertion, where there is no replacement of text
   if prev_end_row == 1 and prev_end_col == 1 then
-    print(vim.inspect({prev_lines=prev_lines, prev_end_row=prev_end_row, prev_line=prev_lines[prev_end_row], prev_end_col=prev_end_col, loc='compute_prev_end_branch_1'}))
+    print(
+      vim.inspect {
+        prev_lines = prev_lines,
+        prev_end_row = prev_end_row,
+        prev_line = prev_lines[prev_end_row],
+        prev_end_col = prev_end_col,
+        loc = 'compute_prev_end_branch_1',
+      }
+    )
     local curr_byte_idx, curr_char_idx = M.align_position(prev_lines[start_row], start_col, 'end', offset_encoding)
     return { line_idx = start_row, byte_idx = curr_byte_idx, char_idx = curr_char_idx }
-  else
+  elseif start_row == prev_end_row then
     -- add the offsets
     prev_end_row = start_row + prev_end_row - 1
     prev_end_col = start_col + prev_end_col - 1
     -- problem is here
-    print(vim.inspect({prev_lines=prev_lines, prev_end_row=prev_end_row, prev_line=prev_lines[prev_end_row], prev_end_col=prev_end_col, loc='compute_prev_end_branch_2'}))
-    local curr_byte_idx, curr_char_idx = M.align_position(prev_lines[prev_end_row], prev_end_col, 'end', offset_encoding)
+    print(
+      vim.inspect {
+        prev_lines = prev_lines,
+        prev_end_row = prev_end_row,
+        prev_line = prev_lines[prev_end_row],
+        prev_end_col = prev_end_col,
+        loc = 'compute_prev_end_branch_2',
+      }
+    )
+    local curr_byte_idx, curr_char_idx = M.align_position(
+      prev_lines[prev_end_row],
+      prev_end_col,
+      'end',
+      offset_encoding
+    )
+    return { line_idx = prev_end_row, byte_idx = curr_byte_idx, char_idx = curr_char_idx }
+  else
+    print(
+      vim.inspect {
+        before=true,
+        prev_lines = prev_lines,
+        start_row=start_row,
+        start_col=start_col,
+        prev_end_row = prev_end_row,
+        prev_line = prev_lines[prev_end_row],
+        prev_end_col = prev_end_col,
+        loc = 'compute_prev_end_branch_3',
+      }
+    )
+    -- add the offsets
+    prev_end_row = start_row + prev_end_row - 1
+    -- prev_end_col = math.min(#prev_lines[prev_end_row], start_col + prev_end_col - 1)
+    -- prev_end_col = start_col + prev_end_col - 1
+    -- problem is here
+    print(
+      vim.inspect {
+        prev_lines = prev_lines,
+        prev_end_row = prev_end_row,
+        prev_line = prev_lines[prev_end_row],
+        prev_end_col = prev_end_col,
+        loc = 'compute_prev_end_branch_3',
+      }
+    )
+    local curr_byte_idx, curr_char_idx = M.align_position(
+      prev_lines[prev_end_row],
+      prev_end_col,
+      'end',
+      offset_encoding
+    )
     return { line_idx = prev_end_row, byte_idx = curr_byte_idx, char_idx = curr_char_idx }
   end
 end
@@ -166,15 +220,48 @@ end
 function M.compute_curr_end_range(curr_lines, start_row, start_col, curr_end_row, curr_end_col, offset_encoding)
   -- Handle pure insertion, where there is no replacement of text
   if curr_end_row == 1 and curr_end_col == 1 then
-    print(vim.inspect({curr_lines=curr_lines, curr_end_row=curr_end_row, curr_line=curr_lines[curr_end_row], curr_end_col=curr_end_col, loc='compute_curr_end_branch_1'}))
+    print(
+      vim.inspect {
+        curr_lines = curr_lines,
+        curr_end_row = curr_end_row,
+        curr_line = curr_lines[curr_end_row],
+        curr_end_col = curr_end_col,
+        loc = 'compute_curr_end_branch_1',
+      }
+    )
     local curr_byte_idx, curr_char_idx = M.align_position(curr_lines[start_row], start_col, 'end', offset_encoding)
     return { line_idx = start_row, byte_idx = curr_byte_idx, char_idx = curr_char_idx }
   else
     -- add the offsets
+    print(
+      vim.inspect {
+        before=true,
+        curr_lines = curr_lines,
+        curr_end_row = curr_end_row,
+        curr_line = curr_lines[curr_end_row],
+        curr_end_col = curr_end_col,
+        loc = 'compute_curr_end_branch_3',
+      }
+    )
     curr_end_row = start_row + curr_end_row - 1
+    -- curr_end_col = math.min(#curr_lines[curr_end_row] + 1, start_col + curr_end_col - 1)
     curr_end_col = start_col + curr_end_col - 1
-    print(vim.inspect({curr_lines=curr_lines, curr_end_row=curr_end_row, curr_line=curr_lines[curr_end_row], curr_end_col=curr_end_col, loc='compute_curr_end_branch_2'}))
-    local curr_byte_idx, curr_char_idx = M.align_position(curr_lines[curr_end_row], curr_end_col, 'end', offset_encoding)
+    print(
+      vim.inspect {
+        after=true,
+        curr_lines = curr_lines,
+        curr_end_row = curr_end_row,
+        curr_line = curr_lines[curr_end_row],
+        curr_end_col = curr_end_col,
+        loc = 'compute_curr_end_branch_3',
+      }
+    )
+    local curr_byte_idx, curr_char_idx = M.align_position(
+      curr_lines[curr_end_row],
+      curr_end_col,
+      'end',
+      offset_encoding
+    )
     return { line_idx = curr_end_row, byte_idx = curr_byte_idx, char_idx = curr_char_idx }
   end
 end
@@ -187,7 +274,7 @@ end
 ---@returns string text extracted from defined region
 function M.extract_text(lines, start_range, end_range, line_ending)
   if not lines[start_range.line_idx] then
-    return ""
+    return ''
   end
 
   -- Trivial case: start and end range are the same line, directly grab changed text
@@ -207,7 +294,7 @@ function M.extract_text(lines, start_range, end_range, line_ending)
     if lines[end_range.line_idx] then
       table.insert(result, string.sub(lines[end_range.line_idx], 1, end_range.byte_idx - 1))
     else
-      table.insert(result, "")
+      table.insert(result, '')
     end
 
     -- Add line ending between all lines
@@ -283,6 +370,7 @@ function M.compute_diff(prev_lines, curr_lines, byte_change, offset_encoding, li
     offset_encoding
   )
 
+  print(vim.inspect({prev_lines=prev_lines, curr_lines=curr_lines}))
   -- curr_end_range is used to grab the changed text from the latest buffer.
   local curr_end_range = M.compute_curr_end_range(
     curr_lines,
