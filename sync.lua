@@ -31,7 +31,6 @@
 --  test 3    test 3
 --  test *4   test 4
 
-
 local M = {}
 
 ---@private
@@ -265,7 +264,9 @@ function M.compute_range_length(lines, start_range, end_range, offset_encoding, 
   local start_line = lines[start_range.line_idx]
   local range_length
   if #start_line > 0 then
-    range_length = M.convert_byte_to_utf(start_line, #start_line, offset_encoding) - start_range.char_idx + line_ending_length
+    range_length = M.convert_byte_to_utf(start_line, #start_line, offset_encoding)
+      - start_range.char_idx
+      + line_ending_length
   else
     -- Length of newline character
     range_length = line_ending_length

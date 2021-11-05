@@ -203,7 +203,6 @@ describe('Multi line operations', function()
   end)
 end)
 
-
 describe('2 edit operations', function()
   local offset_encoding = 'utf-8'
   local line_ending = '\n'
@@ -286,7 +285,7 @@ describe('2 edit operations', function()
         },
         curr_lines = {
           'test1 test2',
-          'test3'
+          'test3',
         },
         firstline = 1,
         lastline = 2,
