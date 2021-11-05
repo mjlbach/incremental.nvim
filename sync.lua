@@ -149,13 +149,13 @@ function M.compute_end_range(prev_lines, curr_lines, start_range, lastline, new_
 
   local prev_line_length = #prev_line
   local curr_line_length = #curr_line
-  print(vim.inspect {
-    prev_line = prev_line,
-    prev_line_idx = prev_line_idx,
-    curr_line = curr_line,
-    curr_line_idx = curr_line_idx,
-    start_range = start_range,
-  })
+  -- print(vim.inspect {
+  --   prev_line = prev_line,
+  --   prev_line_idx = prev_line_idx,
+  --   curr_line = curr_line,
+  --   curr_line_idx = curr_line_idx,
+  --   start_range = start_range,
+  -- })
 
   local byte_offset = 0
   -- Buffer has increased in line count
