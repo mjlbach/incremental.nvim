@@ -126,10 +126,10 @@ function M.compute_start_range(prev_lines, curr_lines, firstline, lastline, new_
   local curr_line = curr_lines[firstline]
 
   -- Iterate across previous and current line containing first change
-  -- to find the first different byte. Note:
-  -- *about -> a*about will register the second a as the first difference,
-  -- regardless of edit since we can't distinguish the first column of
-  -- the edit from on_lines
+  -- to find the first different byte.
+  -- Note: *about -> a*about will register the second a as the first
+  -- difference, regardless of edit since we do not receive the first
+  -- column of the edit from on_lines.
   local start_byte_idx = 1
   for idx = 1, #prev_line + 1 do
     start_byte_idx = idx
