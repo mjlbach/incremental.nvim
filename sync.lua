@@ -249,7 +249,14 @@ function M.extract_text(lines, start_range, end_range, line_ending)
 end
 
 ---@private
-function M.compute_range_length(lines, start_range, end_range, offset_encoding)
+-- rangelength depends on the offset encoding
+-- bytes for utf-8 (clangd with extenion)
+-- codepoints for utf-16
+-- codeunits for utf-32
+-- Line endings count here as 2 chars for \r\n (dos), 1 char for \n (unix), and 1 char for \r (mac)
+-- These correspond to Windows, Linux/macOS (OSX and newer), and macOS (version 9 and prior)
+function M.compute_range_length(lines, start_range, end_range, offset_encoding, line_ending)
+  local line_ending_length = #line_ending
   -- Single line case
   if start_range.line_idx == end_range.line_idx then
     return start_range.char_idx - end_range.char_idx
@@ -258,16 +265,16 @@ function M.compute_range_length(lines, start_range, end_range, offset_encoding)
   local start_line = lines[start_range.line_idx]
   local range_length
   if #start_line > 0 then
-    range_length = M.convert_byte_to_utf(start_line, #start_line, offset_encoding) - start_range.char_idx + 1
+    range_length = M.convert_byte_to_utf(start_line, #start_line, offset_encoding) - start_range.char_idx + line_ending_length
   else
     -- Length of newline character
-    range_length = 1
+    range_length = line_ending_length
   end
 
   -- The first and last range of the line idx may be partial lines
   for idx = start_range.line_idx + 1, end_range.line_idx - 1 do
     -- Length full line plus newline character
-    range_length = range_length + M.convert_byte_to_utf(lines[idx], #lines[idx], offset_encoding) + 1
+    range_length = range_length + M.convert_byte_to_utf(lines[idx], #lines[idx], offset_encoding) + line_ending_length
   end
 
   local end_line = lines[end_range.line_idx]
