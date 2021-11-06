@@ -237,6 +237,8 @@ function M.compute_curr_end_range(curr_lines, start_row, start_col, curr_end_row
       vim.inspect {
         before=true,
         curr_lines = curr_lines,
+        start_row=start_row,
+        start_col=start_col,
         curr_end_row = curr_end_row,
         curr_line = curr_lines[curr_end_row],
         curr_end_col = curr_end_col,

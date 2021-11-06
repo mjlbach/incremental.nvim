@@ -35,7 +35,7 @@ local line_ending = '\n'
 local callback =
   function(_, _, tick, start_row, start_col, _, prev_end_row, prev_end_col, _, curr_end_row, curr_end_col, _)
     local curr_lines = vim.api.nvim_buf_get_lines(edit_buf, 0, -1, true)
-    local change = sync.compute_diff(prev_lines, curr_lines, {
+    local status, change = pcall(sync.compute_diff, prev_lines, curr_lines, {
       start_row = start_row,
       start_col = start_col,
       prev_end_row = prev_end_row,
@@ -43,16 +43,30 @@ local callback =
       curr_end_row = curr_end_row,
       curr_end_col = curr_end_col,
     }, offset_encoding, line_ending)
-    change.prev_lines = prev_lines
-    change.curr_lines = curr_lines
-    change.tick = tick
-    change = vim.deepcopy(change)
+    local error_details
+    if status then
+      change.prev_lines = prev_lines
+      change.curr_lines = curr_lines
+      change.tick = tick
+      change = vim.deepcopy(change)
+    else
+      error_details = {
+        prev_lines=prev_lines,
+        curr_lines=curr_lines,
+        start_row = start_row,
+        start_col = start_col,
+        prev_end_row = prev_end_row,
+        prev_end_col = prev_end_col,
+        curr_end_row = curr_end_row,
+        curr_end_col = curr_end_col,
+      }
+    end
+
     -- local prev_end_range, curr_end_range = sync.compute_end_range(last_lines, lines, start_range, lastline+1, new_lastline+1, offset_encoding)
 
     -- local text = extract_text(lines, start_range, new_end_range)
 
     local to_schedule = function()
-      local ur
       vim.api.nvim_buf_set_lines(last_buf, 0, 0, true, change.prev_lines)
       vim.api.nvim_buf_set_lines(last_buf, 0, 0, true, { '', 'last buffer state: ' .. tostring(change.tick) })
       vim.api.nvim_buf_set_lines(curr_buf, 0, 0, true, change.curr_lines)
@@ -74,7 +88,30 @@ local callback =
         '',
       })
     end
-    vim.schedule(to_schedule)
+
+    local error_handler = function()
+      vim.api.nvim_buf_set_lines(last_buf, 0, 0, true, error_details.prev_lines)
+      vim.api.nvim_buf_set_lines(last_buf, 0, 0, true, { '', 'last buffer state: ' .. tostring(error_details.tick) })
+      vim.api.nvim_buf_set_lines(curr_buf, 0, 0, true, error_details.curr_lines)
+      vim.api.nvim_buf_set_lines(curr_buf, 0, 0, true, { '', 'current buffer state: ' .. tostring(tick) })
+
+      -- print(vim.inspect(error_details))
+      vim.api.nvim_buf_set_lines(log_buf, 0, 0, true, {
+        string.format('ERROR: printing debug information'),
+        string.format('start_row: %d', error_details.start_row),
+        string.format('start_col: %d', error_details.start_col),
+        string.format('prev_end_row: %d', error_details.prev_end_row),
+        string.format('prev_end_col: %d', error_details.prev_end_col),
+        string.format('curr_end_row: %d', error_details.curr_end_row),
+        string.format('curr_end_col: %d', error_details.curr_end_col),
+        '',
+      })
+    end
+    if status then
+      vim.schedule(to_schedule)
+    else
+      vim.schedule(error_handler)
+    end
     prev_lines=curr_lines
   end
 

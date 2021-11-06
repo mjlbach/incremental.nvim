@@ -42,6 +42,8 @@ local callback = function(
   curr_end_byte
 )
   local curr_lines = vim.api.nvim_buf_get_lines(edit_buf, 0, -1, true)
+  print(vim.inspect(prev_lines))
+  print(vim.inspect(curr_lines))
   local change = {
     ['start'] = {
       row = start_row,
@@ -91,6 +93,7 @@ local callback = function(
       '',
     })
   end
+  prev_lines = vim.deepcopy(change.curr_lines)
   vim.schedule(to_schedule)
 end
 
