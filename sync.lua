@@ -275,6 +275,17 @@ function M.extract_text(lines, start_range, end_range, line_ending)
   end
 end
 
+function M.compute_line_length(line, offset_encoding)
+  local length
+  if offset_encoding == 'utf-16' then
+     _, length = vim.str_utfindex(line)
+  elseif offset_encoding == 'utf-32' then
+    length, _ = vim.str_utfindex(line)
+  else
+    length = #line
+  end
+  return length
+end
 ---@private
 -- rangelength depends on the offset encoding
 -- bytes for utf-8 (clangd with extenion)
@@ -292,8 +303,7 @@ function M.compute_range_length(lines, start_range, end_range, offset_encoding, 
   local start_line = lines[start_range.line_idx]
   local range_length
   if start_line and #start_line > 0 then
-    --TODO(mjlbach): check 1 indexing
-    range_length = M.byte_to_utf(start_line, #start_line, offset_encoding) - start_range.char_idx + line_ending_length
+    range_length = M.compute_line_length(start_line, offset_encoding) - start_range.char_idx + 1 + line_ending_length
   else
     -- Length of newline character
     range_length = line_ending_length
@@ -303,7 +313,7 @@ function M.compute_range_length(lines, start_range, end_range, offset_encoding, 
   for idx = start_range.line_idx + 1, end_range.line_idx - 1 do
     -- Length full line plus newline character
     if #lines[idx] > 0 then
-      range_length = range_length + M.byte_to_utf(lines[idx], #lines[idx], offset_encoding) + line_ending_length
+      range_length = range_length + M.compute_line_length(lines[idx], offset_encoding) + #line_ending
     else
       range_length = range_length + line_ending_length
     end
@@ -311,10 +321,7 @@ function M.compute_range_length(lines, start_range, end_range, offset_encoding, 
 
   local end_line = lines[end_range.line_idx]
   if end_line and #end_line > 0 then
-    --TODO(mjlbach): check 1 indexing
-    range_length = range_length + M.byte_to_utf(end_line, end_range.byte_idx, offset_encoding)
-  else
-    range_length = range_length + line_ending_length
+    range_length = range_length + end_range.char_idx - 1
   end
 
   return range_length

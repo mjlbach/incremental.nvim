@@ -28,17 +28,10 @@ vim.cmd [[ wincmd w ]]
 -- vim.cmd [[ autocmd cursorhold * echo line('.') col('.')]]
 
 vim.api.nvim_buf_set_lines(edit_buf, 0, -1, true, {
-'module Scratch where',
-'',
-'data Foo = FooConstructor String String',
-'',
-'--bar :: [Foo]',
-'--bar =',
-'--  (FooConstructor <$> ["hello, neovim!"] <* ["⊕" :: String])',
-'--    <*> ["goodbye, neovim!"]',
-'',
-'baz :: String',
-'baz = "this should stay as is"',
+'a🔥',
+'b🔥',
+'c🔥',
+'d🔥',
   })
 
 local last_lines = vim.api.nvim_buf_get_lines(edit_buf, 0, -1, true)
@@ -65,7 +58,7 @@ local callback = function(_, _, tick, firstline, lastline, new_lastline, _, _, _
     offset_encoding
   )
   local prev_end_range, curr_end_range = sync.compute_end_range(last_lines, curr_lines, start_range, firstline+1, lastline+1, new_lastline+1, offset_encoding, line_ending)
-  print(vim.inspect({firstline=firstline+1, lastline=lastline+1, new_lastline=new_lastline+1, last_lines=last_lines, curr_lines=curr_lines, start_range=start_range, prev_end_range=prev_end_range, curr_end_range=curr_end_range}))
+  -- print(vim.inspect({firstline=firstline, lastline=lastline, new_lastline=new_lastline, last_lines=last_lines, curr_lines=curr_lines, start_range=start_range, prev_end_range=prev_end_range, curr_end_range=curr_end_range}))
 
   local text = sync.extract_text(curr_lines, start_range, curr_end_range, line_ending)
 
@@ -96,16 +89,16 @@ local callback = function(_, _, tick, firstline, lastline, new_lastline, _, _, _
       -- string.format("    }"),
       string.format '{range',
       string.format '  {start: ',
-      string.format('    line: %d', start_range.line_idx),
-      string.format('    char: %d', start_range.char_idx),
+      string.format('    line: %d', start_range.line_idx-1),
+      string.format('    char: %d', start_range.char_idx-1),
       string.format '    }',
       string.format '  {end:',
-      string.format("    line: %d", prev_end_range.line_idx),
-      string.format("    char: %d", prev_end_range.char_idx),
+      string.format("    line: %d", prev_end_range.line_idx-1),
+      string.format("    char: %d", prev_end_range.char_idx-1),
       string.format("    }"),
       string.format("  {new text end:"),
-      string.format("    line: %d", curr_end_range.line_idx),
-      string.format("    char: %d", curr_end_range.char_idx),
+      string.format("    line: %d", curr_end_range.line_idx-1),
+      string.format("    char: %d", curr_end_range.char_idx-1),
       string.format '    }',
       -- string.format("start_range_char %d", start_range.char_idx),
       -- string.format("start_range_line %d", start_range.line_idx),
@@ -119,9 +112,9 @@ local callback = function(_, _, tick, firstline, lastline, new_lastline, _, _, _
       -- string.format("new_end_range_char %d", new_end_range.char_idx),
       string.format("text '%s'", vim.fn.join(vim.split(text, '\n'), '\\n')),
       string.format("range_length '%d'", range_length),
-      string.format('firstline (1-indexed): %d', copied_firstline + 1),
-      string.format('lastline (1-indexed): %d', copied_lastline + 1),
-      string.format('newlastline (1-indexed): %d', copied_new_lastline + 1),
+      string.format('firstline (1-indexed): %d', copied_firstline),
+      string.format('lastline (1-indexed): %d', copied_lastline),
+      string.format('newlastline (1-indexed): %d', copied_new_lastline),
       '',
     })
   end
