@@ -27,7 +27,19 @@ vim.api.nvim_set_current_buf(curr_buf)
 vim.cmd [[ wincmd w ]]
 -- vim.cmd [[ autocmd cursorhold * echo line('.') col('.')]]
 
-vim.api.nvim_buf_set_lines(edit_buf, 0, -1, true, { 'test1 test2', 'test2' })
+vim.api.nvim_buf_set_lines(edit_buf, 0, -1, true, {
+'module Scratch where',
+'',
+'data Foo = FooConstructor String String',
+'',
+'--bar :: [Foo]',
+'--bar =',
+'--  (FooConstructor <$> ["hello, neovim!"] <* ["⊕" :: String])',
+'--    <*> ["goodbye, neovim!"]',
+'',
+'baz :: String',
+'baz = "this should stay as is"',
+  })
 
 local last_lines = vim.api.nvim_buf_get_lines(edit_buf, 0, -1, true)
 local last_changed_tick = vim.deepcopy(vim.b.changedtick)

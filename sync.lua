@@ -1,4 +1,4 @@
--- Note on incremental sync:
+-- Notes on incremental sync:
 --  Per the protocol, the text range should be:
 --
 --  A position inside a document (see Position definition below) is expressed as
@@ -10,28 +10,41 @@
 --  To ensure that both client and server split the string into the same line
 --  representation the protocol specifies the following end-of-line sequences: ‘\n’, ‘\r\n’ and ‘\r’.
 --
---  Positions are line end character agnostic. So you can not specify a position that denotes \r|\n or \n| where | represents the character offset. This means *no* defining a range than ends on the same line after a terminating character
+--  Positions are line end character agnostic. So you can not specify a position that
+--  denotes \r|\n or \n| where | represents the character offset. This means *no* defining
+--  a range than ends on the same line after a terminating character
 --
--- Generic warnings about byte level changes in neovim
---  Join operation (2 op): extends line 1 with the contents of line 2, delete line 2
---  lastline = 3
+-- Generic warnings about byte level changes in neovim. Many apparently "single"
+-- operations in on_lines callbacks are actually multiple operations.
+--
+--  Join operation (2 operations):
+--  * extends line 1 with the contents of line 2
+--  * deletes line 2
+--
 --  test 1    test 1 test 2    test 1 test 2
 --  test 2 -> test 2        -> test 3
 --  test 3    test 3
 --
---  Deleting (and undoing) two middle lines (1 op)
+--  Deleting (and undoing) two middle lines (1 operation):
+--
 --  test 1    test 1
 --  test 2 -> test 4
 --  test 3
 --  test 4
 --
---  Delete between asterisks (5 op)
+--  Deleting partial lines (5 operations) deleting between asterisks below:
+--
 --  test *1   test *    test *     test *    test *4    test *4*
 --  test 2 -> test 2 -> test *4 -> *4     -> *4      ->
 --  test 3    test 3
 --  test *4   test 4
 
 local M = {}
+
+-- local string.byte, unclear if this is necessary for JIT compilation
+local str_byte = string.byte
+local vim = vim
+local math = math
 
 ---@private
 -- Given a line, byte idx, and offset_encoding convert to the
@@ -41,7 +54,7 @@ local M = {}
 ---@param offset_encoding string utf-8|utf-16|utf-32|nil (default: utf-8)
 --@returns integer the utf idx for the given encoding
 function M.byte_to_utf(line, byte, offset_encoding)
-  -- convert to 0 based indexing
+  -- convert to 0 based indexing for str_utfindex
   byte = byte - 1
 
   local utf_idx
@@ -74,12 +87,10 @@ function M.align_position(line, byte, align, offset_encoding)
   -- If on the first byte, or an empty string: the trivial case
   if byte == 1 or #line == 0 then
     char = byte
-    -- TODO(mjlbach): not sure about this in the multibyte case
-    -- Called in the case of extending an empty line "" -> "a"
+  -- Called in the case of extending an empty line "" -> "a"
   elseif byte == #line + 1 then
-    byte = byte
-    -- Find the utf position of the end of the line, and add one for the new character
-    char = M.byte_to_utf(line, #line, offset_encoding) + 1
+    byte = byte + vim.str_utf_end(line, #line)
+    char = M.byte_to_utf(line, byte, offset_encoding)
   else
     -- Modifying line, find the nearest utf codepoint
     if align == 'start' then
@@ -97,7 +108,7 @@ function M.align_position(line, byte, align, offset_encoding)
         byte = byte + offset
       end
     else
-      assert(false, '`align` must be start or end.')
+      error('`align` must be start or end.')
     end
     -- Extending line, find the nearest utf codepoint for the last valid character
   end
@@ -135,7 +146,7 @@ function M.compute_start_range(prev_lines, curr_lines, firstline, lastline, new_
   local start_byte_idx = 1
   for idx = 1, #prev_line + 1 do
     start_byte_idx = idx
-    if string.byte(prev_line, idx) ~= string.byte(curr_line, idx) then
+    if str_byte(prev_line, idx) ~= str_byte(curr_line, idx) then
       break
     end
   end
@@ -164,11 +175,9 @@ function M.compute_end_range(prev_lines, curr_lines, start_range, firstline, las
   -- If firstline == new_lastline, the first change occured on a line that was deleted.
   -- In this case, the last_byte...
   if firstline == new_lastline then
-      print('returning here1')
       return { line_idx = (lastline - new_lastline + firstline), byte_idx = 1, char_idx = 1 }, { line_idx = firstline, byte_idx = 1, char_idx = 1 }
   end
   if firstline == lastline then
-      print('returning here2')
       return { line_idx = firstline, byte_idx = 1, char_idx = 1 }, { line_idx = new_lastline - lastline + firstline, byte_idx = 1, char_idx = 1 }
   end
   -- Compare on last line, at minimum will be the start range
@@ -183,13 +192,6 @@ function M.compute_end_range(prev_lines, curr_lines, start_range, firstline, las
 
   local prev_line_length = #prev_line
   local curr_line_length = #curr_line
-  -- print(vim.inspect {
-  --   prev_line = prev_line,
-  --   prev_line_idx = prev_line_idx,
-  --   curr_line = curr_line,
-  --   curr_line_idx = curr_line_idx,
-  --   start_range = start_range,
-  -- })
 
   local byte_offset = 0
   -- Buffer has increased in line count
@@ -209,10 +211,9 @@ function M.compute_end_range(prev_lines, curr_lines, start_range, firstline, las
       max_length = math.min(prev_line_length, curr_line_length) + 1
     end
     for idx = 0, max_length do
-      print(prev_line, string.sub(prev_line, prev_line_length - idx, prev_line_length - idx), curr_line, string.sub(curr_line, curr_line_length - idx, curr_line_length - idx), idx, max_length)
       byte_offset = idx
       if
-        string.byte(prev_line, prev_line_length - byte_offset) ~= string.byte(curr_line, curr_line_length - byte_offset)
+        str_byte(prev_line, prev_line_length - byte_offset) ~= str_byte(curr_line, curr_line_length - byte_offset)
       then
         break
       end
@@ -221,18 +222,16 @@ function M.compute_end_range(prev_lines, curr_lines, start_range, firstline, las
 
   -- Iterate from end to beginning of shortest line
   local prev_end_byte_idx = prev_line_length - byte_offset + 1
-  local prev_byte_idx, prev_char_idx = M.align_position(prev_line, prev_end_byte_idx, 'end', offset_encoding)
+  local prev_byte_idx, prev_char_idx = M.align_position(prev_line, prev_end_byte_idx, 'start', offset_encoding)
   local prev_end_range = { line_idx = prev_line_idx, byte_idx = prev_byte_idx, char_idx = prev_char_idx }
 
   local curr_end_range
   -- Deletion event, new_range cannot be before start
   if curr_line_idx < start_line_idx then
-    print('here7')
     curr_end_range = { line_idx = start_line_idx, byte_idx = 1, char_idx = 1 }
   else
-    print('here8')
     local curr_end_byte_idx = curr_line_length - byte_offset + 1
-    local curr_byte_idx, curr_char_idx = M.align_position(curr_line, curr_end_byte_idx, 'end', offset_encoding)
+    local curr_byte_idx, curr_char_idx = M.align_position(curr_line, curr_end_byte_idx, 'start', offset_encoding)
     curr_end_range = { line_idx = curr_line_idx, byte_idx = curr_byte_idx, char_idx = curr_char_idx }
   end
 
@@ -303,14 +302,17 @@ function M.compute_range_length(lines, start_range, end_range, offset_encoding, 
   -- The first and last range of the line idx may be partial lines
   for idx = start_range.line_idx + 1, end_range.line_idx - 1 do
     -- Length full line plus newline character
-    --TODO(mjlbach): check 1 indexing
-    range_length = range_length + M.byte_to_utf(lines[idx], #lines[idx], offset_encoding) + line_ending_length
+    if #lines[idx] > 0 then
+      range_length = range_length + M.byte_to_utf(lines[idx], #lines[idx], offset_encoding) + line_ending_length
+    else
+      range_length = range_length + line_ending_length
+    end
   end
 
   local end_line = lines[end_range.line_idx]
   if end_line and #end_line > 0 then
     --TODO(mjlbach): check 1 indexing
-    range_length = range_length + M.byte_to_utf(end_line, #end_line, offset_encoding) - end_range.char_idx
+    range_length = range_length + M.byte_to_utf(end_line, end_range.byte_idx, offset_encoding)
   else
     range_length = range_length + line_ending_length
   end

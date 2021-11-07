@@ -376,6 +376,10 @@ describe('2 edit operations', function()
   end)
 end)
 
+-- unicode that has previously failed
+-- aб -> б
+-- aб -> б
+
 -- TODO:
 -- * undo operations
 -- * redo operations
@@ -388,5 +392,6 @@ end)
 -- * deleting multiple lines including the last line of buffer
 -- * deleting the entire buffer
 -- * multiline deletion with X
+-- *  
 -- * delete partial line across mutliple lines
 -- * add validation set scraped from vscode (careful, emulation of vim motions isn't perfect so some commands will be different)
